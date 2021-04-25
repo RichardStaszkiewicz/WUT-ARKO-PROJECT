@@ -172,9 +172,10 @@ find_marker:
 	
 	move	$a2, $s1				# save pixel address in image in $a2
 	move	$a3, $s2				# save pixel RGB in $a3
-#	jal	get_len
-#	beq	$v1, 1, end_pix
-#	move	$s1, $v0
+	
+	jal	get_len
+	beq	$v1, 1, end_pix
+	move	$s3, $v0
 #	
 #	jal	get_hight
 #	beq	$v1, 1, end_pix
@@ -227,6 +228,10 @@ get_pixel:
 
 	subu 	$sp, $sp, 4	#push $ra to the stack
 	sw 	$ra, 4($sp)
+	subu	$sp, $sp, 4
+	sw	$s0, 4($sp)
+	subu	$sp, $sp, 4
+	sw	$s1, 4($sp)
 
 #	la 	$t1, image + 10	# adress of file offset to pixel array
 #	lw 	$t2, ($t1)	# file offset to pixel array in $t2
@@ -243,7 +248,11 @@ get_pixel:
 	lbu 	$t1,2($t2)		# load R
           sll 	$t1,$t1,16
 	or 	$v0, $v0, $t1
-					
+	
+	lw	$s1, 4($sp)
+	addu	$sp, $sp, 4
+	lw	$s0, 4($sp)
+	addu	$sp, $sp, 4	
 	lw 	$ra, 4($sp)		# restore (pop) $ra
 	addu 	$sp, $sp, 4
 	jr 	$ra
@@ -255,8 +264,8 @@ get_len:
 # arguments:
 #	$a0 - x coordinate
 #	$a1 - y coordinate
-#	$a2 - RGB signature to look for
-#	$a3 - Pixel address in image
+#	$a2 - Pixel address in image
+#	$a3 - RGB signature to look for
 # return value:
 #	$v0 - counted length
 #	$v1 - 0 if fulfiles conditions, 1 otherwise
@@ -266,30 +275,42 @@ get_len:
 	subu 	$sp, $sp, 4		# push $s0 (used adress) to the stack
 	sw 	$s0, 4($sp)
 	subu 	$sp, $sp, 4		# push $s1 (image adress) to the stack
-	sw 	$s0, 4($sp)
+	sw 	$s1, 4($sp)
 	subu 	$sp, $sp, 4		# push $s2 (RGB) to the stack
-	sw 	$s0, 4($sp)
+	sw 	$s2, 4($sp)
+	subu	$sp, $sp, 4		# push $a0 (x coordinate) to the stack
+	sw	$a0, 4($sp)
+	subu	$sp, $sp, 4		# push $a2 (pixel adress in image) to the stack
+	sw	$a0, 4($sp)
 	
 	li	$v1, 0			# at first, everything is OK
-	move	$t0, $a2			# current RGB
-	move	$t1, $a0			# real x coordinate
-	move	$t2, $s1			# current address in image
+	move	$s0, $a3			# current RGB
+	move	$s1, $a0			# real x coordinate
 	
 	
-check:	addu	$t2, $t2, 3
-	addiu	$a0, $t0, 1
+check:	addu	$a2, $a2, 3
+	addiu	$a0, $a0, 1
 	beq	$a0, BYTES_PER_ROW, end_len
 	jal	get_pixel
-	beq	$t0, $v0, check
+	beq	$s0, $v0, check
 	
 	
 
 
-end_len:	subu	$v0, $a0, $t1
+end_len:	subu	$v0, $a0, $s1
+	subiu	$v0, $v0, 1
+	lw	$a2, 4($sp)
+	addu	$sp, $sp, 4
+	lw 	$a0, 4($sp)
+	addu	$sp, $sp, 4
+	lw 	$s2, 4($sp)
+	addu	$sp, $sp, 4
+	lw 	$s1, 4($sp)
+	addu	$sp, $sp, 4
 	lw 	$s0, 4($sp)
 	addu	$sp, $sp, 4
 	lw	$ra, 4($sp)
-	sw	$s0, 4($sp)
+	addu	$sp, $sp, 4
 	jr	$ra
 
 
