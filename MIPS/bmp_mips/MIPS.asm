@@ -135,11 +135,10 @@ find_marker:
 # saved registers:
 #	$s0 - Used adress of current pixel
 #	$s1 - image adress of current pixel
-#	$s2 - OPERATIVE PURPOUSES
-#	$s3 - Potential length of current marker (delta x)
-#	$s4 - Potential width of current marker (delta y)
-#	$s5 - Potential height of current marker (delta y)
-#	$s6 - Print pixel flag - if set, print at the end the adjusted coordinates
+#	$s2 - Potential length of current marker (delta x)
+#	$s3 - Potential width of current marker (delta y)
+#	$s4 - Potential height of current marker (delta y)
+#	$s5 - Print pixel flag - if set, print at the end the adjusted coordinates
 # return value: none
 	subu 	$sp, $sp, 4
 	sw 	$ra, 4($sp)
@@ -177,7 +176,7 @@ find_marker:
 	move	$a2, $s1				# load pixels address in image to $a2
 	lw 	$a0, 4($sp)			# return to original $a0 value (y coordinate)
 	
-	li	$s6, 1				# set print pixel flag on 1 (expected correct marker) (stored to $s6)
+	li	$s5, 1				# set print pixel flag on 1 [true] (expected correct marker) (stored to $s5)
 	
 	# markers RGB
 	jal	get_pixel
@@ -186,49 +185,80 @@ find_marker:
 	
 	move	$a3, $s0				# use as 4th argument the position in used
 	
-	# markers potential length (stored in $s3)
+	# markers potential length (stored in $s2)
 	jal	get_len
 	beq	$v1, 1, end_pix			# if errors occured, end
 	beq	$v0, 0, end_pix			# if it is a single of it's kind coloured pixel, end
-	move	$s3, $v0				# save potential length in $s3 register
+	move	$s2, $v0				# save potential length in $s2 register
 	
 	
-	# markers potential width (stored in $s4)
+	# markers potential width (stored in $s3)
 	jal	get_hgh				# get the potential width of the marker
-	move	$s4, $v0				# save potential width in $s4
+	move	$s3, $v0				# save potential width in $s3
 	
 	
-	# markers potential height (stored in $s5)
-	addu	$a0, $s3, $a0			# translate x to x + len -> marker's corner pixel
-	mulu	$t0, $s3, 3			# multiply len by number of bytes per pixel and save to $t0
+	# markers potential height (stored in $s4)
+	addu	$a0, $s2, $a0			# translate x to x + len -> marker's corner pixel
+	mulu	$t0, $s2, 3			# multiply len by number of bytes per pixel and save to $t0
 	addu	$a2, $t0, $a2			# add to current pixels position in image $t0, to make it point towards corner pixel
-	addu	$s0, $s3, $s0			# add to current pixels position in use len, to make it point towards corner pixel
+	addu	$a3, $s2, $a3			# add to current pixels position in use len, to make it point towards corner pixel
 	
 	jal	get_hgh				# get the potential height of the marker
 	beq	$v1, 1, end_pix
-	move	$s5, $v0				# save the potential height of the marker to $s5
-	
-	subu	$a0, $a0, $s3			# set x to real x (point we're currently working on)
-	mulu	$t0, $s3, 3			# multiply len by number of bytes per pixel and save to $t0
-	subu	$a2, $a2, $t0			# return to real adress in image
-	subu	$s0, $s0, $s3			# return to real adress in used
+	move	$s4, $v0				# save the potential height of the marker to $s4
 	
 	
+	# Test1: Check equal arm length
+	seq	$t0, $s2, $s4
+	and	$s5, $s5, $t0
 	
 	
+	# preparation for Test2 & Test3 (a0, a2, a3 already points towards corner pixel)
+	li	$t0, 0				# iterator checking width
+	
+	# Test2: Check equal width  /  Test3: Check standing arm interior
+ch_std:	subu	$a0, $a0, 1			# decrement x
+	subu	$a2, $a2, 3			# point in image towards new pixel
+	subu	$a3, $a3, 1			# point in used towards new pixel
+	jal	get_hgh
+	seq	$t1, $v0, $s4			# Flag on $t1 is set if the counted height is equal to anticipated one (do height)
+	and	$s5, $s5, $t1			# if the flag is not set or already the conditions weren't fulfiled, the print flag is equal 0
+	addu	$t0, $t0, 1			# increment the iterator
+	bne	$t0, $s3, ch_std			# if the whole width is checked, end the loop
+
+
+	# preparations for Test4 ($a0, $a2, $a3 already set to the last pixel in width range)
+	move	$t0, $s2				# move potential length to iterator
+	subu	$t0, $t0, $s3			# substract width from length (is already checked by Test3)
+	subiu	$t0, $t0, 1
+	li	$t1, 0
+	ble	$t0, $t1, test5
+	li	$t1, 1
+	beq	$t0, $t1, t4_end
+	
+	# Test4: Check lying arm interior
+ch_lyi:	subu	$a0, $a0, 1			# decrement x
+	subu	$a2, $a2, 3			# point in image towards new pixel
+	subu	$a3, $a3, 1			# point in used towards new pixel
+	jal	get_hgh
+	seq	$t1, $v0, $s3			# Flag on $t1 is set if the height is equal to anticipated one (so width)
+	and	$s5, $s5, $t1			# if the flag is not set or already the conditions weren't fulfiled, the print flag is equal 0
+	subu	$t0, $t0, 1			# decrement the iterator
+	bne	$t0, 0, ch_lyi			# if the whole arm is checked, end the loop
 	
 	
+	# Return to the original coordinates (move one more pixel left)
+t4_end:	subiu	$a0, $a0, 1				
+	subiu	$a2, $a2, 3
+	subiu	$a3, $a3, 1
 	
-	
-	
-	
-	
+	# Test5,  Test6, Test7 -> check the vertical edges
 	
 	
 	# Print if flag on $s6 is set (neq 0)
-	beq	$s6, 0, end_pix			# if the shape is incorrect, end
+	beq	$s5, 0, end_pix			# if the shape is incorrect, end
 	li 	$v0, 1				# syscall print int
-	addu	$a0, $a0, $s3			# adjust x to point towards marker's corner pixel
+	addu	$a0, $a0, $s2			# adjust x to point towards marker's corner pixel
 	syscall					# print x
 	li	$v0, 11				# syscall print char
 	li	$a0, ','
@@ -331,7 +361,6 @@ get_len:
 #	$a1 - y coordinate
 #	$a2 - Pixel address in image
 #	$a3 - Address in used
-#	$s0 - 
 # return value:
 #	$v0 - counted length
 #	$v1 - 0 executed, 1 error
