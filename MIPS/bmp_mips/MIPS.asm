@@ -135,7 +135,7 @@ find_marker:
 # saved registers:
 #	$s0 - Used adress of current pixel
 #	$s1 - image adress of current pixel
-#	$s2 - RGB of current marker
+#	$s2 - OPERATIVE PURPOUSES
 #	$s3 - Potential length of current marker (delta x)
 #	$s4 - Potential width of current marker (delta y)
 #	$s5 - Potential height of current marker (delta y)
@@ -157,6 +157,7 @@ find_marker:
 	addu	$t1, $t0, $t1			# $t1 stores current pixels address in used
 	lb	$t0, ($t1)			# $t0 stores current pixels value in used
 	beq	$t0, 1, end_pix			# if the pixel is already used, return
+	li	$t0, 1				# make $t0 store constant 1 to fill the used
 	sb	$t0, ($t1)			# mark current pixel as used
 	move	$s0, $t1				# save pixel adress in used to $s0
 	
@@ -178,15 +179,12 @@ find_marker:
 	
 	li	$s6, 1				# set print pixel flag on 1 (expected correct marker) (stored to $s6)
 	
-	# markers RGB (stored in $s2)
+	# markers RGB
 	jal	get_pixel
-	li	$t0, 16777215
-	beq	$v0, $t0, end_pix			# if the pixel is white, continue
-	move	$s2, $v0				# save pixel RGB in $s2
-	
+	bne	$v0, 0, end_pix			# if the pixel is not black, continue
 	move	$a2, $s1				# save pixel address in image in $a2
-	move	$a3, $s2				# save pixel RGB in $a3
 	
+	move	$a3, $s0				# use as 4th argument the position in used
 	
 	# markers potential length (stored in $s3)
 	jal	get_len
@@ -332,8 +330,8 @@ get_len:
 #	$a0 - x coordinate
 #	$a1 - y coordinate
 #	$a2 - Pixel address in image
-#	$a3 - RGB signature to look for
-#	$s0 - Address in used
+#	$a3 - Address in used
+#	$s0 - 
 # return value:
 #	$v0 - counted length
 #	$v1 - 0 executed, 1 error
@@ -360,8 +358,8 @@ get_len:
 	sw	$a2, 4($sp)
 	
 	li	$v1, 0			# at first, everything is OK
-	move	$s2, $s0			# push to $s2 current address in used
-	move	$s0, $a3			# current RGB
+	move	$s2, $a3			# push to $s2 current address in used
+	li 	$s0, 0x000000		# black RGB
 	move	$s1, $a0			# real x coordinate
 	li	$s4, 1			# constant 1, to be pushed into used
 	
@@ -414,8 +412,7 @@ get_hgh:
 #	$a0 - x coordinate
 #	$a1 - y coordinate
 #	$a2 - Pixel address in image
-#	$a3 - RGB signature to look for
-#	$s0 - Adress in used
+#	$a3 - Adress in used
 # return value:
 #	$v0 - counted height
 #	$v1 - 0 executed, 1 error
@@ -443,8 +440,8 @@ get_hgh:
 
 
 	li	$v1, 0			# at first, everything is OK
-	move	$s2, $s0			# push to $s2 current address in used
-	move	$s0, $a3			# current RGB
+	move	$s2, $a3			# push to $s2 current address in used
+	li	$s0, 0x000000		# black RGB
 	move	$s1, $a1			# real y coordinate
 	li	$s4, 1			# constant 1, to be pushed into used
 	
