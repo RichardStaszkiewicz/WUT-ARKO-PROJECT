@@ -215,6 +215,7 @@ find_marker:
 	
 	# preparation for Test2 & Test3 (a0, a2, a3 already points towards corner pixel)
 	li	$t0, 0				# iterator checking width
+	beq	$s3, $t0, test4			# if the width has no other rows than the descriptor, continue to next test
 	
 	# Test2: Check equal width  /  Test3: Check standing arm interior
 ch_std:	subu	$a0, $a0, 1			# decrement x
@@ -228,13 +229,12 @@ ch_std:	subu	$a0, $a0, 1			# decrement x
 
 
 	# preparations for Test4 ($a0, $a2, $a3 already set to the last pixel in width range)
-	move	$t0, $s2				# move potential length to iterator
+test4:	move	$t0, $s2				# move potential length to iterator
 	subu	$t0, $t0, $s3			# substract width from length (is already checked by Test3)
 	subiu	$t0, $t0, 1
 	li	$t1, 0
-	ble	$t0, $t1, test5
-	li	$t1, 1
-	beq	$t0, $t1, t4_end
+	blt	$t0, $t1, test5			# if the remaining amount of pixels is less then 0, continue to another test
+	beq	$t0, $t1, t4_end			# fi the remaining amount of pixels is equal 0, (descriptory axis) move to the end of this test
 	
 	# Test4: Check lying arm interior
 ch_lyi:	subu	$a0, $a0, 1			# decrement x
@@ -247,13 +247,13 @@ ch_lyi:	subu	$a0, $a0, 1			# decrement x
 	bne	$t0, 0, ch_lyi			# if the whole arm is checked, end the loop
 	
 	
-	# Return to the original coordinates (move one more pixel left)
+	# Return to the original coordinates (move one pixel left)
 t4_end:	subiu	$a0, $a0, 1				
 	subiu	$a2, $a2, 3
 	subiu	$a3, $a3, 1
 	
 	# Test5,  Test6, Test7 -> check the vertical edges
-	
+test5:
 	
 	# Print if flag on $s6 is set (neq 0)
 	beq	$s5, 0, end_pix			# if the shape is incorrect, end
