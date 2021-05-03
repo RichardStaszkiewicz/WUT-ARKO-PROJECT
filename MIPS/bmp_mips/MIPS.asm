@@ -157,6 +157,7 @@ find_marker:
 	addu	$t1, $t0, $t1			# $t1 stores current pixels address in used
 	lb	$t0, ($t1)			# $t0 stores current pixels value in used
 	beq	$t0, 1, end_pix			# if the pixel is already used, return
+	sb	$t0, ($t1)			# mark current pixel as used
 	move	$s0, $t1				# save pixel adress in used to $s0
 	
 
@@ -220,6 +221,12 @@ find_marker:
 	
 	
 	
+	
+	
+	
+	
+	
+	
 	# Print if flag on $s6 is set (neq 0)
 	beq	$s6, 0, end_pix			# if the shape is incorrect, end
 	li 	$v0, 1				# syscall print int
@@ -232,7 +239,7 @@ find_marker:
 	li	$a0, ' '
 	syscall					# print space
 	move 	$a0, $a1
-	li	$v0, 1
+	li	$v0, 1				# syscall print int
 	syscall					# print y
 	li	$v0, 11				# syscall print char
 	li	$a0, '\n'
