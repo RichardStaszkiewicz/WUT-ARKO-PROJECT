@@ -17,7 +17,7 @@
 reserved:	.space 2				# reserved space (for safety)
 image:	.space BMP_FILE_SIZE		# space to store the BMP file
 used:	.space 76800			# space to store the map of checked pixels
-fname:	.asciiz "test.bmp"			# name of the imported file
+fname:	.asciiz "big_test.bmp"			# name of the imported file
 err_msg:	.asciiz "Error occured during run"	# Message printed if error
 
 
