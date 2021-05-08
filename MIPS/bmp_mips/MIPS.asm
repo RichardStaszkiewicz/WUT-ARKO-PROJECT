@@ -154,7 +154,7 @@ find_marker:
 	addu	$t0, $a0, $t0
 	la	$t1, used	
 	addu	$t1, $t0, $t1			# $t1 stores current pixels address in used
-	lb	$t0, ($t1)			# $t0 stores current pixels value in used
+	lbu	$t0, ($t1)			# $t0 stores current pixels value in used
 	beq	$t0, 1, end_pix			# if the pixel is already used, return
 	li	$t0, 1				# make $t0 store constant 1 to fill the used
 	sb	$t0, ($t1)			# mark current pixel as used
@@ -188,13 +188,15 @@ find_marker:
 	
 	# markers potential length (stored in $s2)
 	jal	get_len
-	beq	$v1, 1, end_pix			# if errors occured, end
+	# beq	$v1, 0, end_pix			# if errors occured, end
 	beq	$v0, 0, end_pix			# if it is a single of it's kind coloured pixel, end
+	and	$s5, $v1, $s5			# if errors occured, set print flag to 0
 	move	$s2, $v0				# save potential length in $s2 register
 	
 	
 	# markers potential width (stored in $s3)
 	jal	get_hgh				# get the potential width of the marker
+	and	$s5, $v1, $s5				# if errors occured, set print flag to 0
 	move	$s3, $v0				# save potential width in $s3
 	
 	
@@ -205,7 +207,7 @@ find_marker:
 	addu	$a3, $s2, $a3			# add to current pixels position in use len, to make it point towards corner pixel
 	
 	jal	get_hgh				# get the potential height of the marker
-	beq	$v1, 1, end_pix
+	and	$s5, $v1, $s5				# if errors occured, set print flag to 0
 	move	$s4, $v0				# save the potential height of the marker to $s4
 	
 	
@@ -215,7 +217,7 @@ find_marker:
 	
 	
 	# preparation for Test2 & Test3 (a0, a2, a3 already points towards corner pixel)
-	li	$t0, 0				# iterator checking width
+	li	$t0, 0				# iterator checking width (not used in get_hgh)
 	beq	$s3, $t0, test4			# if the width has no other rows than the descriptor, continue to next test
 	
 	# Test2: Check equal width  /  Test3: Check standing arm interior
@@ -364,7 +366,7 @@ get_len:
 #	$a3 - Address in used
 # return value:
 #	$v0 - counted length
-#	$v1 - 0 executed, 1 error
+#	$v1 - 1 executed, 0 error
 	
 	subu 	$sp, $sp, 4		# push $ra to the stack
 	sw	$ra, 4($sp)
@@ -394,20 +396,23 @@ get_len:
 	li	$s4, 1			# constant 1, to be pushed into used
 	
 	
-check_l:	sb	$s4, ($s2)
-	addu	$a2, $a2, 3
+check_l:	addu	$a2, $a2, 3
 	addiu	$a0, $a0, 1
 	addiu	$s2, $s2, 1
 	beq	$a0, BYTES_PER_ROW_USED, end_len
+	lbu	$t0, ($s2)
+	seq	$v1, $t0, 1
+	sb	$s4, ($s2)
 	jal	get_pixel
 	beq	$s0, $v0, check_l
 	
-	li	$s4, 0			# last pixel is not in the marker, so unused. Correction
-	sb	$s4, ($s2)
+	#li	$s4, 0			# last pixel is not in the marker, so unused. Correction
+	#sb	$s4, ($s2)
 
 
 end_len:	subu	$v0, $a0, $s1
 	subiu	$v0, $v0, 1
+	seq	$v1, $v1, 0		# if no errors occured, set $v1 to 1
 	lw	$a2, 4($sp)
 	addu	$sp, $sp, 4
 	lw 	$a0, 4($sp)
@@ -445,7 +450,7 @@ get_hgh:
 #	$a3 - Adress in used
 # return value:
 #	$v0 - counted height
-#	$v1 - 0 executed, 1 error
+#	$v1 - 1 executed, 0 error
 
 	subu 	$sp, $sp, 4		# push $ra to the stack
 	sw	$ra, 4($sp)
@@ -476,22 +481,24 @@ get_hgh:
 	li	$s4, 1			# constant 1, to be pushed into used
 	
 	
-check_h:	sb	$s4, ($s2)
-	addu	$a2, $a2, BYTES_PER_ROW
+check_h:	addu	$a2, $a2, BYTES_PER_ROW
 	addiu	$a1, $a1, 1
 	addiu	$s2, $s2, BYTES_PER_ROW_USED
 	beq	$a1, BYTES_PER_COLUMN, end_hgh
+	lbu	$t6, ($s2)
+	seq	$v1, $t6, 1
+	sb	$s4, ($s2)
 	jal	get_pixel
 	beq	$s0, $v0, check_h
-	
-	li	$s4, 0			# last pixel is not in the marker, so unused. Correction
-	sb	$s4, ($s2)
+	#li	$s4, 0			# last pixel is not in the marker, so unused. Correction
+	#sb	$s4, ($s2)
 
 
 
 
 end_hgh:	subu	$v0, $a1, $s1		# delta is returned to $v0 register
 	subiu	$v0, $v0, 1		# we've also counted base pixel. Correction
+	seq	$v1, $v1, 0		# if no errors occured, set $v1 to 1
 	lw	$a2, 4($sp)
 	addu	$sp, $sp, 4
 	lw 	$a1, 4($sp)
@@ -515,7 +522,17 @@ end_hgh:	subu	$v0, $a1, $s1		# delta is returned to $v0 register
 	jr	$ra
 
 
-
+# edge_v:
+# description: 
+#	returns potential length of single-coloured arm, starting with given coordinates pixel
+# arguments:
+#	$a0 - x coordinate
+#	$a1 - y coordinate
+#	$a2 - Pixel address in image
+#	$a3 - Adress in used
+# return value:
+#	$v0 - counted height
+#	$v1 - 0 executed, 1 error
 
 
 
