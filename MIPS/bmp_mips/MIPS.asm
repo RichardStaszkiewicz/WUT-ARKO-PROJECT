@@ -17,7 +17,7 @@
 reserved:	.space 2				# reserved space (for safety)
 image:	.space BMP_FILE_SIZE		# space to store the BMP file
 used:	.space 76800			# space to store the map of checked pixels
-fname:	.asciiz "big_test.bmp"			# name of the imported file
+fname:	.asciiz "test.bmp"			# name of the imported file
 err_msg:	.asciiz "Error occured during run"	# Message printed if error
 
 
@@ -176,12 +176,13 @@ find_marker:
 	move	$a2, $s1				# load pixels address in image to $a2
 	lw 	$a0, 4($sp)			# return to original $a0 value (y coordinate)
 	
-	li	$s5, 1				# set print pixel flag on 1 [true] (expected correct marker) (stored to $s5)
 	
 	# markers RGB
 	jal	get_pixel
 	bne	$v0, 0, end_pix			# if the pixel is not black, continue
 	move	$a2, $s1				# save pixel address in image in $a2
+	
+	li	$s5, 1				# set print pixel flag on 1 [true] (expected correct marker) (stored to $s5)
 	
 	move	$a3, $s0				# use as 4th argument the position in used
 	
@@ -479,7 +480,7 @@ check_h:	sb	$s4, ($s2)
 	addu	$a2, $a2, BYTES_PER_ROW
 	addiu	$a1, $a1, 1
 	addiu	$s2, $s2, BYTES_PER_ROW_USED
-	beq	$a1, BYTES_PER_COLUMN, end_len
+	beq	$a1, BYTES_PER_COLUMN, end_hgh
 	jal	get_pixel
 	beq	$s0, $v0, check_h
 	
