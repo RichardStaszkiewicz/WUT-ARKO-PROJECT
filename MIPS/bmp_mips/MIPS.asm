@@ -249,14 +249,77 @@ ch_lyi:	subu	$a0, $a0, 1			# decrement x
 	subu	$t0, $t0, 1			# decrement the iterator
 	bne	$t0, 0, ch_lyi			# if the whole arm is checked, end the loop
 	
-	
 	# Return to the original coordinates (move one pixel left)
 t4_end:	subiu	$a0, $a0, 1				
 	subiu	$a2, $a2, 3
 	subiu	$a3, $a3, 1
+
+	# push x and y to the stack
+	subu	$sp, $sp, 4		# push $a0 (x coordinate) to the stack
+	sw	$a0, 4($sp)
+	subu	$sp, $sp, 4		# push $a1 (y coordinate) to the stack
+	sw	$a1, 4($sp)
 	
 	# Test5,  Test6, Test7 -> check the vertical edges
-test5:
+	# Test 5 left edge
+test5:	beq	$a0, 0, test6			# if the marker is on the left edge, skip the test
+	subiu	$a0, $a0, 1
+	subiu	$a2, $a2, 3
+	subiu	$a3, $a3, 1
+	move	$s7, $s3
+	jal	edge_v
+	and	$s5, $s5, $v1
+	addiu	$a0, $a0, 1
+	addiu	$a2, $a2, 3
+	addiu	$a3, $a3, 1
+
+
+	# Test 6: right edge
+test6:	addu	$a0, $s2, $a0
+	addiu	$a0, $a0, 1
+	mulu	$t0, $s2, 3			# multiply len by number of bytes per pixel and save to $t0
+	addu	$a2, $t0, $a2			# add to current pixels position in image $t0, to make it point towards corner pixel
+	addiu	$a2, $a2, 3
+	addu	$a3, $s2, $a3			# add to current pixels position in use len, to make it point towards corner pixel
+	addiu	$a3, $a3, 1
+	beq	$a0, BYTES_PER_ROW_USED, test7	# if the marker is on the right edge, skip the test
+	move	$s7, $s4				# we want only the pixels in our height
+	jal	edge_v
+	and	$s5, $s5, $v1
+	
+	
+	
+	# Test7: internal edge (currently we are one pixel behind the corner one)
+test7:	subu	$a0, $a0, $s3			# Transpose X
+	subiu	$a0, $a0, 2
+	subu	$a3, $a3, $s3
+	subiu	$a3, $a3, 2
+	mulu	$t0, $s3, 3
+	subu	$a2, $a2, $t0
+	subiu	$a2, $a2, 6
+	
+	addu	$a1, $a1, $s3
+	addiu	$a1, $a1, 1
+	mulu	$t0, $s3, BYTES_PER_ROW_USED
+	addu	$a3, $a3, $t0
+	addiu	$a3, $a3, BYTES_PER_ROW_USED
+	mulu	$t0, $t0, 3
+	addu	$a2, $a2, $t0
+	addiu	$a2, $a2, BYTES_PER_ROW
+	
+	subu	$s7, $s4, $s3				# we want only the pixels in our height
+	subiu	$s7, $s7, 1
+	beq	$s7, 0, rest
+	jal	edge_v
+	and	$s5, $s5, $v1
+	
+	
+	# restore x and y
+rest:	lw	$a1, 4($sp)
+	addu	$sp, $sp, 4
+	lw 	$a0, 4($sp)
+	addu	$sp, $sp, 4
+	
 	
 	# Print if flag on $s6 is set (neq 0)
 	beq	$s5, 0, end_pix			# if the shape is incorrect, end
@@ -522,24 +585,85 @@ end_hgh:	subu	$v0, $a1, $s1		# delta is returned to $v0 register
 	jr	$ra
 
 
-# edge_v:
+edge_v:
 # description: 
-#	returns potential length of single-coloured arm, starting with given coordinates pixel
+#	check if vertical edge is non-black *like get_hgh, but expects no black and has stop condition*
 # arguments:
 #	$a0 - x coordinate
 #	$a1 - y coordinate
 #	$a2 - Pixel address in image
 #	$a3 - Adress in used
+#	$s7 - Amount to check (unorthodox way of passing argument, but had no spare $a register)
 # return value:
 #	$v0 - counted height
-#	$v1 - 0 executed, 1 error
+#	$v1 - 1 executed, 0 error
+
+	subu 	$sp, $sp, 4		# push $ra to the stack
+	sw	$ra, 4($sp)
+	subu 	$sp, $sp, 4		# push $s0 (used adress) to the stack
+	sw 	$s0, 4($sp)
+	subu 	$sp, $sp, 4		# push $s1 (image adress) to the stack
+	sw 	$s1, 4($sp)
+	subu 	$sp, $sp, 4		# push $s2 (RGB) to the stack
+	sw 	$s2, 4($sp)
+	subu	$sp, $sp, 4		# push $s3 (potential length) to the stack
+	sw	$s3, 4($sp)
+	subu	$sp, $sp, 4		# push $s4 (potential width) to the stack
+	sw	$s4, 4($sp)
+	subu	$sp, $sp, 4		# push $s5 (potential height) to the stack
+	sw	$s5, 4($sp)
+	subu	$sp, $sp, 4		# push $s6 (print flag) to the stack
+	sw	$s6, 4($sp)
+	subu	$sp, $sp, 4		# push $a1 (y coordinate) to the stack
+	sw	$a1, 4($sp)
+	subu	$sp, $sp, 4		# push $a2 (pixel adress in image) to the stack
+	sw	$a2, 4($sp)
+
+
+	li	$v1, 0			# at first, everything is OK
+	move	$s2, $a3			# push to $s2 current address in used
+	li	$s0, 0x000000		# black RGB
+	move	$s1, $a1			# real y coordinate
+	li	$s4, 1			# constant 1, to be pushed into used
+
+	
+	
+check_e:	addu	$a2, $a2, BYTES_PER_ROW
+	addiu	$a1, $a1, 1
+	addiu	$s2, $s2, BYTES_PER_ROW_USED
+	beq	$a1, BYTES_PER_COLUMN, end_e
+	sb	$s4, ($s2)
+	jal	get_pixel
+	subiu	$s7, $s7, 1
+	seq	$v1, $s0, $v0		# if there is a black pixel on the edge, set $v1 to TRUE
+	bne	$s7, 0, check_e
+	#li	$s4, 0			# last pixel is not in the marker, so unused. Correction
+	#sb	$s4, ($s2)
 
 
 
 
-
-
-
-
-
-
+end_e:	subu	$v0, $a1, $s1		# delta is returned to $v0 register
+	subiu	$v0, $v0, 1		# we've also counted base pixel. Correction
+	seq	$v1, $v1, 0		# if no errors occured, set $v1 to 1
+	lw	$a2, 4($sp)
+	addu	$sp, $sp, 4
+	lw 	$a1, 4($sp)
+	addu	$sp, $sp, 4
+	lw	$s6, 4($sp)
+	addu	$sp, $sp, 4
+	lw 	$s5, 4($sp)
+	addu	$sp, $sp, 4
+	lw 	$s4, 4($sp)
+	addu	$sp, $sp, 4
+	lw	$s3, 4($sp)
+	addu	$sp, $sp, 4
+	lw 	$s2, 4($sp)
+	addu	$sp, $sp, 4
+	lw 	$s1, 4($sp)
+	addu	$sp, $sp, 4
+	lw 	$s0, 4($sp)
+	addu	$sp, $sp, 4
+	lw	$ra, 4($sp)
+	addu	$sp, $sp, 4
+	jr	$ra
