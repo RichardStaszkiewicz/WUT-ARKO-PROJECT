@@ -465,11 +465,12 @@ check_l:	addu	$a2, $a2, 3
 	addiu	$a0, $a0, 1
 	addiu	$s2, $s2, 1
 	beq	$a0, BYTES_PER_ROW_USED, end_len
-	lbu	$t0, ($s2)
-	seq	$v1, $t0, 1
+	lbu	$s3, ($s2)
+	addu	$v1, $s3, $v1		# sum of used on the axis
 	sb	$s4, ($s2)
 	jal	get_pixel
 	beq	$s0, $v0, check_l
+	
 	
 	#li	$s4, 0			# last pixel is not in the marker, so unused. Correction
 	#sb	$s4, ($s2)
@@ -477,7 +478,9 @@ check_l:	addu	$a2, $a2, 3
 
 end_len:	subu	$v0, $a0, $s1
 	subiu	$v0, $v0, 1
-	seq	$v1, $v1, 0		# if no errors occured, set $v1 to 1
+	seq	$t0, $s3, 1		# if the last pixel was used, it's irrelevant
+	subu	$v1, $v1, $t0		# v1 - number of used in relevant (acceptable only 0)
+	seq	$v1, $v1, 0		# if no errors occured, set $v1 to 1 (else, it will be set to 0)
 	lw	$a2, 4($sp)
 	addu	$sp, $sp, 4
 	lw 	$a0, 4($sp)
