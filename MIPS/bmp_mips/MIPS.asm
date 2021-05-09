@@ -48,9 +48,8 @@ read_bmp:
 #description: reads the contents of a bmp file into memory
 #arguments: none
 #return value: none
-	subu 	$sp, $sp, 4			# push $ra to the stack
-	sw 	$ra, 4($sp)
-	subu 	$sp, $sp, 4			# push $s1
+	subu 	$sp, $sp, 8			# push $ra to the stack
+	sw 	$ra, 8($sp)
 	sw 	$s1, 4($sp)
 #open file
 	li 	$v0, 13				# instruction: open file
@@ -82,9 +81,8 @@ fclose:	li 	$v0, 16
         	syscall
 	
 	lw 	$s1, 4($sp)			#restore (pop) $s1
-	addu 	$sp, $sp, 4
-	lw 	$ra, 4($sp)		
-	addu 	$sp, $sp, 4
+	lw 	$ra, 8($sp)		
+	addu 	$sp, $sp, 8
 	jr 	$ra
 
 
@@ -107,8 +105,6 @@ clear_used:
 #return value: none
 	subu 	$sp, $sp, 4
 	sw 	$ra, 4($sp)
-	subu 	$sp, $sp, 4
-	sw 	$s1, 4($sp)
 	
 	li	$t0, 0				# $t0 will store an iterator
 	la	$t1, used				# $t1 will store current byte
@@ -119,8 +115,6 @@ loop:	sb	$t3, ($t1)
 	addiu	$t1, $t1, 1
 	bne	$t0, 76800, loop
 	
-	lw 	$s1, 4($sp)
-	addu 	$sp, $sp, 4
 	lw 	$ra, 4($sp)		
 	addu 	$sp, $sp, 4
 	jr 	$ra
@@ -140,13 +134,9 @@ find_marker:
 #	$s4 - Potential height of current marker (delta y)
 #	$s5 - Print pixel flag - if set, print at the end the adjusted coordinates
 # return value: none
-	subu 	$sp, $sp, 4
-	sw 	$ra, 4($sp)
-	subu 	$sp, $sp, 4
-	sw 	$s1, 4($sp)
-	subu	$sp, $sp, 4
-	sw	$a1, 4($sp)
-	subu	$sp, $sp, 4
+	subu 	$sp, $sp, 12
+	sw 	$ra, 12($sp)
+	sw	$a1, 8($sp)
 	sw	$a0, 4($sp)
 	
 	# pixel adress in used (stored to $s0)
@@ -255,9 +245,8 @@ t4_end:	subiu	$a0, $a0, 1
 	subiu	$a3, $a3, 1
 
 	# push x and y to the stack
-test5:	subu	$sp, $sp, 4		# push $a0 (x coordinate) to the stack
-	sw	$a0, 4($sp)
-	subu	$sp, $sp, 4		# push $a1 (y coordinate) to the stack
+test5:	subu	$sp, $sp, 8		# push $a0 (x coordinate) to the stack
+	sw	$a0, 8($sp)
 	sw	$a1, 4($sp)
 	
 	# Test5,  Test6, Test7 -> check the vertical edges
@@ -285,7 +274,7 @@ test6:	addu	$a0, $s2, $a0
 	addiu	$a3, $a3, 1
 	beq	$a0, BYTES_PER_ROW_USED, test7	# if the marker is on the right edge, skip the test
 	move	$s7, $s4				# we want only the pixels in our height
-	# blez	$s7, test7			# if the marker has no height
+	#blez	$s7, test7			# if the marker has no height WHY SWITCHING IT CHOOSES BETWEEN (13, 81) & (8, 239)???????
 	jal	edge_v
 	and	$s5, $s5, $v1
 	
@@ -318,9 +307,8 @@ test7:	subu	$a0, $a0, $s3			# Transpose X
 	
 	# restore x and y
 rest:	lw	$a1, 4($sp)
-	addu	$sp, $sp, 4
-	lw 	$a0, 4($sp)
-	addu	$sp, $sp, 4
+	lw 	$a0, 8($sp)
+	addu	$sp, $sp, 8
 	
 	
 	# Print if flag on $s6 is set (neq 0)
@@ -344,13 +332,9 @@ rest:	lw	$a1, 4($sp)
 
 
 end_pix:	lw 	$a0, 4($sp)
-	addu 	$sp, $sp, 4
-	lw 	$a1, 4($sp)
-	addu 	$sp, $sp, 4
-	lw 	$s1, 4($sp)
-	addu 	$sp, $sp, 4
-	lw 	$ra, 4($sp)
-	addu 	$sp, $sp, 4
+	lw 	$a1, 8($sp)
+	lw 	$ra, 12($sp)
+	addu 	$sp, $sp, 12
 	jr 	$ra
 
 
@@ -384,38 +368,18 @@ get_pixel:
 
 	subu 	$sp, $sp, 4	#push $ra to the stack
 	sw 	$ra, 4($sp)
-	subu	$sp, $sp, 4
-	sw	$s0, 4($sp)
-	subu	$sp, $sp, 4
-	sw	$s1, 4($sp)
-	subu	$sp, $sp, 4
-	sw	$s2, 4($sp)
-	subu	$sp, $sp, 4
-	sw	$s3, 4($sp)
-	subu	$sp, $sp, 4
-	sw	$s4, 4($sp)
 	
 	move	$t2, $a2		# pixel address in image
 	
 	#get color
-	lbu 	$v0,($t2)			# load B
-	lbu 	$t1,1($t2)		# load G
-	sll 	$t1,$t1,8
+	lbu 	$v0, ($t2)			# load B
+	lbu 	$t1, 1($t2)		# load G
+	sll 	$t1, $t1, 8
 	or 	$v0, $v0, $t1
-	lbu 	$t1,2($t2)		# load R
-          sll 	$t1,$t1,16
+	lbu 	$t1, 2($t2)		# load R
+          sll 	$t1, $t1, 16
 	or 	$v0, $v0, $t1
 	
-	lw	$s4, 4($sp)
-	addu	$sp, $sp, 4
-	lw	$s3, 4($sp)
-	addu	$sp, $sp, 4
-	lw	$s2, 4($sp)
-	addu	$sp, $sp, 4
-	lw	$s1, 4($sp)
-	addu	$sp, $sp, 4
-	lw	$s0, 4($sp)
-	addu	$sp, $sp, 4	
 	lw 	$ra, 4($sp)		# restore (pop) $ra
 	addu 	$sp, $sp, 4
 	jr 	$ra
@@ -433,25 +397,14 @@ get_len:
 #	$v0 - counted length
 #	$v1 - 1 executed, 0 error
 	
-	subu 	$sp, $sp, 4		# push $ra to the stack
-	sw	$ra, 4($sp)
-	subu 	$sp, $sp, 4		# push $s0 (used adress) to the stack
-	sw 	$s0, 4($sp)
-	subu 	$sp, $sp, 4		# push $s1 (image adress) to the stack
-	sw 	$s1, 4($sp)
-	subu 	$sp, $sp, 4		# push $s2 (RGB) to the stack
-	sw 	$s2, 4($sp)
-	subu	$sp, $sp, 4		# push $s3 (potential length) to the stack
-	sw	$s3, 4($sp)
-	subu	$sp, $sp, 4		# push $s4 (potential width) to the stack
-	sw	$s4, 4($sp)
-	subu	$sp, $sp, 4		# push $s5 (potential height) to the stack
-	sw	$s5, 4($sp)
-	subu	$sp, $sp, 4		# push $s6 (print flag) to the stack
-	sw	$s6, 4($sp)
-	subu	$sp, $sp, 4		# push $a0 (x coordinate) to the stack
-	sw	$a0, 4($sp)
-	subu	$sp, $sp, 4		# push $a2 (pixel adress in image) to the stack
+	subu 	$sp, $sp, 32		# push $ra to the stack
+	sw	$ra, 32($sp)
+	sw 	$s0, 28($sp)
+	sw 	$s1, 24($sp)
+	sw 	$s2, 20($sp)
+	sw	$s3, 16($sp)
+	sw	$s4, 12($sp)
+	sw	$a0, 8($sp)
 	sw	$a2, 4($sp)
 	
 	li	$v1, 0			# at first, everything is OK
@@ -481,25 +434,14 @@ end_len:	subu	$v0, $a0, $s1
 	subiu	$v0, $v0, 1
 	seq	$v1, $v1, 0		# if no errors occured, set $v1 to 1 (else, it will be set to 0)
 	lw	$a2, 4($sp)
-	addu	$sp, $sp, 4
-	lw 	$a0, 4($sp)
-	addu	$sp, $sp, 4
-	lw	$s6, 4($sp)
-	addu	$sp, $sp, 4
-	lw 	$s5, 4($sp)
-	addu	$sp, $sp, 4
-	lw 	$s4, 4($sp)
-	addu	$sp, $sp, 4
-	lw	$s3, 4($sp)
-	addu	$sp, $sp, 4
-	lw 	$s2, 4($sp)
-	addu	$sp, $sp, 4
-	lw 	$s1, 4($sp)
-	addu	$sp, $sp, 4
-	lw 	$s0, 4($sp)
-	addu	$sp, $sp, 4
-	lw	$ra, 4($sp)
-	addu	$sp, $sp, 4
+	lw 	$a0, 8($sp)
+	lw 	$s4, 12($sp)
+	lw	$s3, 16($sp)
+	lw 	$s2, 20($sp)
+	lw 	$s1, 24($sp)
+	lw 	$s0, 28($sp)
+	lw	$ra, 32($sp)
+	addu	$sp, $sp, 32
 	jr	$ra
 
 
@@ -519,25 +461,13 @@ get_hgh:
 #	$v0 - counted height
 #	$v1 - 1 executed, 0 error
 
-	subu 	$sp, $sp, 4		# push $ra to the stack
-	sw	$ra, 4($sp)
-	subu 	$sp, $sp, 4		# push $s0 (used adress) to the stack
-	sw 	$s0, 4($sp)
-	subu 	$sp, $sp, 4		# push $s1 (image adress) to the stack
-	sw 	$s1, 4($sp)
-	subu 	$sp, $sp, 4		# push $s2 (RGB) to the stack
-	sw 	$s2, 4($sp)
-	subu	$sp, $sp, 4		# push $s3 (potential length) to the stack
-	sw	$s3, 4($sp)
-	subu	$sp, $sp, 4		# push $s4 (potential width) to the stack
-	sw	$s4, 4($sp)
-	subu	$sp, $sp, 4		# push $s5 (potential height) to the stack
-	sw	$s5, 4($sp)
-	subu	$sp, $sp, 4		# push $s6 (print flag) to the stack
-	sw	$s6, 4($sp)
-	subu	$sp, $sp, 4		# push $a1 (y coordinate) to the stack
-	sw	$a1, 4($sp)
-	subu	$sp, $sp, 4		# push $a2 (pixel adress in image) to the stack
+	subu 	$sp, $sp, 28		# push $ra to the stack
+	sw	$ra, 28($sp)
+	sw 	$s0, 24($sp)
+	sw 	$s1, 20($sp)
+	sw 	$s2, 16($sp)
+	sw	$s4, 12($sp)
+	sw	$a1, 8($sp)
 	sw	$a2, 4($sp)
 
 
@@ -567,25 +497,13 @@ end_hgh:	subu	$v0, $a1, $s1		# delta is returned to $v0 register
 	subiu	$v0, $v0, 1		# we've also counted base pixel. Correction
 	seq	$v1, $v1, 0		# if no errors occured, set $v1 to 1
 	lw	$a2, 4($sp)
-	addu	$sp, $sp, 4
-	lw 	$a1, 4($sp)
-	addu	$sp, $sp, 4
-	lw	$s6, 4($sp)
-	addu	$sp, $sp, 4
-	lw 	$s5, 4($sp)
-	addu	$sp, $sp, 4
-	lw 	$s4, 4($sp)
-	addu	$sp, $sp, 4
-	lw	$s3, 4($sp)
-	addu	$sp, $sp, 4
-	lw 	$s2, 4($sp)
-	addu	$sp, $sp, 4
-	lw 	$s1, 4($sp)
-	addu	$sp, $sp, 4
-	lw 	$s0, 4($sp)
-	addu	$sp, $sp, 4
-	lw	$ra, 4($sp)
-	addu	$sp, $sp, 4
+	lw 	$a1, 8($sp)
+	lw 	$s4, 12($sp)
+	lw 	$s2, 16($sp)
+	lw 	$s1, 20($sp)
+	lw 	$s0, 24($sp)
+	lw	$ra, 28($sp)
+	addu	$sp, $sp, 28
 	jr	$ra
 
 
@@ -602,25 +520,14 @@ edge_v:
 #	$v0 - counted height
 #	$v1 - 1 executed, 0 error
 
-	subu 	$sp, $sp, 4		# push $ra to the stack
-	sw	$ra, 4($sp)
-	subu 	$sp, $sp, 4		# push $s0 (used adress) to the stack
-	sw 	$s0, 4($sp)
-	subu 	$sp, $sp, 4		# push $s1 (image adress) to the stack
-	sw 	$s1, 4($sp)
-	subu 	$sp, $sp, 4		# push $s2 (RGB) to the stack
-	sw 	$s2, 4($sp)
-	subu	$sp, $sp, 4		# push $s3 (potential length) to the stack
-	sw	$s3, 4($sp)
-	subu	$sp, $sp, 4		# push $s4 (potential width) to the stack
-	sw	$s4, 4($sp)
-	subu	$sp, $sp, 4		# push $s5 (potential height) to the stack
-	sw	$s5, 4($sp)
-	subu	$sp, $sp, 4		# push $s6 (print flag) to the stack
-	sw	$s6, 4($sp)
-	subu	$sp, $sp, 4		# push $a1 (y coordinate) to the stack
-	sw	$a1, 4($sp)
-	subu	$sp, $sp, 4		# push $a2 (pixel adress in image) to the stack
+	subu 	$sp, $sp, 32		# push $ra to the stack
+	sw	$ra, 32($sp)
+	sw 	$s0, 28($sp)
+	sw 	$s1, 24($sp)
+	sw 	$s2, 20($sp)
+	sw	$s4, 16($sp)
+	sw	$s7, 12($sp)
+	sw	$a1, 8($sp)
 	sw	$a2, 4($sp)
 
 
@@ -652,23 +559,12 @@ end_e:	subu	$v0, $a1, $s1		# delta is returned to $v0 register
 	subiu	$v0, $v0, 1		# we've also counted base pixel. Correction
 	seq	$v1, $v1, 0		# if no errors occured, set $v1 to 1
 	lw	$a2, 4($sp)
-	addu	$sp, $sp, 4
-	lw 	$a1, 4($sp)
-	addu	$sp, $sp, 4
-	lw	$s6, 4($sp)
-	addu	$sp, $sp, 4
-	lw 	$s5, 4($sp)
-	addu	$sp, $sp, 4
-	lw 	$s4, 4($sp)
-	addu	$sp, $sp, 4
-	lw	$s3, 4($sp)
-	addu	$sp, $sp, 4
-	lw 	$s2, 4($sp)
-	addu	$sp, $sp, 4
-	lw 	$s1, 4($sp)
-	addu	$sp, $sp, 4
-	lw 	$s0, 4($sp)
-	addu	$sp, $sp, 4
-	lw	$ra, 4($sp)
-	addu	$sp, $sp, 4
+	lw 	$a1, 8($sp)
+	lw	$s7, 12($sp)
+	lw 	$s4, 16($sp)
+	lw 	$s2, 20($sp)
+	lw 	$s1, 24($sp)
+	lw 	$s0, 28($sp)
+	lw	$ra, 32($sp)
+	addu	$sp, $sp, 32
 	jr	$ra
