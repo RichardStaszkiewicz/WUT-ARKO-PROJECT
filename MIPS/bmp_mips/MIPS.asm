@@ -255,14 +255,14 @@ t4_end:	subiu	$a0, $a0, 1
 	subiu	$a3, $a3, 1
 
 	# push x and y to the stack
-	subu	$sp, $sp, 4		# push $a0 (x coordinate) to the stack
+test5:	subu	$sp, $sp, 4		# push $a0 (x coordinate) to the stack
 	sw	$a0, 4($sp)
 	subu	$sp, $sp, 4		# push $a1 (y coordinate) to the stack
 	sw	$a1, 4($sp)
 	
 	# Test5,  Test6, Test7 -> check the vertical edges
 	# Test 5 left edge
-test5:	beq	$a0, 0, test6			# if the marker is on the left edge, skip the test
+	beq	$a0, 0, test6			# if the marker is on the left edge, skip the test
 	subiu	$a0, $a0, 1
 	subiu	$a2, $a2, 3
 	subiu	$a3, $a3, 1
@@ -309,7 +309,7 @@ test7:	subu	$a0, $a0, $s3			# Transpose X
 	
 	subu	$s7, $s4, $s3				# we want only the pixels in our height
 	subiu	$s7, $s7, 1
-	beq	$s7, 0, rest
+	blez	$s7, rest
 	jal	edge_v
 	and	$s5, $s5, $v1
 	
@@ -635,7 +635,8 @@ check_e:	addu	$a2, $a2, BYTES_PER_ROW
 	sb	$s4, ($s2)
 	jal	get_pixel
 	subiu	$s7, $s7, 1
-	seq	$v1, $s0, $v0		# if there is a black pixel on the edge, set $v1 to TRUE
+	seq	$t0, $s0, $v0		# if there is a black pixel on the edge, set $v1 to TRUE
+	or	$v1, $v1, $t0
 	bne	$s7, 0, check_e
 	#li	$s4, 0			# last pixel is not in the marker, so unused. Correction
 	#sb	$s4, ($s2)
