@@ -17,7 +17,7 @@
 reserved:	.space 2				# reserved space (for safety)
 image:	.space BMP_FILE_SIZE		# space to store the BMP file
 used:	.space 76800			# space to store the map of checked pixels
-fname:	.asciiz "test.bmp"			# name of the imported file
+fname:	.asciiz "big_test.bmp"			# name of the imported file
 err_msg:	.asciiz "Error occured during run"	# Message printed if error
 
 
@@ -179,7 +179,7 @@ find_marker:
 	# markers potential length (stored in $s2)
 	jal	get_len
 	# beq	$v1, 0, end_pix			# if errors occured, end
-	beq	$v0, 0, end_pix			# if it is a single of it's kind coloured pixel, end
+	# beq	$v0, 0, end_pix			# if it is a single of it's kind coloured pixel, end
 	and	$s5, $v1, $s5			# if errors occured, set print flag to 0
 	move	$s2, $v0				# save potential length in $s2 register
 	
