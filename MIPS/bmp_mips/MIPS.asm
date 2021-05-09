@@ -474,12 +474,11 @@ check_l:	addu	$a2, $a2, 3
 	
 	#li	$s4, 0			# last pixel is not in the marker, so unused. Correction
 	#sb	$s4, ($s2)
-
+	seq	$t0, $s3, 1		# if the last pixel was used, it's irrelevant
+	subu	$v1, $v1, $t0		# v1 - number of used in relevant (acceptable only 0)
 
 end_len:	subu	$v0, $a0, $s1
 	subiu	$v0, $v0, 1
-	seq	$t0, $s3, 1		# if the last pixel was used, it's irrelevant
-	subu	$v1, $v1, $t0		# v1 - number of used in relevant (acceptable only 0)
 	seq	$v1, $v1, 0		# if no errors occured, set $v1 to 1 (else, it will be set to 0)
 	lw	$a2, 4($sp)
 	addu	$sp, $sp, 4
