@@ -262,7 +262,8 @@ test5:	subu	$sp, $sp, 4		# push $a0 (x coordinate) to the stack
 	
 	# Test5,  Test6, Test7 -> check the vertical edges
 	# Test 5 left edge
-	beq	$a0, 0, test6			# if the marker is on the left edge, skip the test
+	beqz	$a0, test6			# if the marker is on the left edge, skip the test
+	blez	$s3, test6			# if the marker has no width
 	subiu	$a0, $a0, 1
 	subiu	$a2, $a2, 3
 	subiu	$a3, $a3, 1
@@ -284,6 +285,7 @@ test6:	addu	$a0, $s2, $a0
 	addiu	$a3, $a3, 1
 	beq	$a0, BYTES_PER_ROW_USED, test7	# if the marker is on the right edge, skip the test
 	move	$s7, $s4				# we want only the pixels in our height
+	# blez	$s7, test7			# if the marker has no height
 	jal	edge_v
 	and	$s5, $s5, $v1
 	
