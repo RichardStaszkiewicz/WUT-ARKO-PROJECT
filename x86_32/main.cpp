@@ -13,7 +13,7 @@ int main(int argc, const char *argv[])
     //     printf("Please provide only a path to the file\n");
     //     return 0;
     // }
-    argv[1] = "./test_bmp/very_small.bmp";
+    argv[1] = "./test_bmp/test_input.bmp";
 
     FILE *fp;
     fp = fopen(argv[1], "rb");
@@ -41,9 +41,11 @@ int main(int argc, const char *argv[])
 
     fclose(fp);
 
-    printf("%p\n", (void*) x_coord);
+    printf("%p\n", (void*) data);
+    printf("%d %d %d\n", *(data), *(data + 1), *(data + 2));
 
     int amount = find_markers(data, used, x_coord, y_coord, width, height);
+
 
     printf("%p\n", (void*) x_coord);
 

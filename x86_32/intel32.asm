@@ -77,7 +77,9 @@
 ;
 ;
 ;====================REGISTERS USAGE========================
-
+; EAX			Accumulator / function return value 1
+; ECX			Accumulator / function return value 2
+; EDX			in find_marker: PRINT FLAG
 
 
 
@@ -179,8 +181,65 @@ find_marker:
 	push	ebp
 	mov		ebp, esp			;remember the last EBP
 
+	; check if is used & if so, end
+	mov		eax, [ebp + 12]
+	mov		ecx, [eax]			;read the value of used pixel
+	cmp		ecx, 0
+	jne		exit_fm				;if is not equal 0, end search
+	mov		[eax], DWORD 1		;mark pixel as used (int32 as declared in main.cpp)
+
+	mov		eax, [ebp + 20]
+	push	eax					;push current Y (flexible)
+	mov		eax, [ebp + 16]
+	push	eax					;push current X (flexible)
+	mov		eax, [ebp + 12]
+	push 	eax					;push current USED (flexible)
+	mov		eax, [ebp + 8]
+	push 	eax					;push current IMAGE (flexible)
+	mov 	eax, DWORD 0
+	push	eax					;initiate marker_len (int32)
+	push	eax					;initiate marker_width (int32)
+	push	eax					;initiate marker_hgh (int32)
+
+	mov		eax, [ebp + 8]
+	push	eax					;push current Image pos (get_pixel arg)
+	mov		eax, [ebp + 20]
+	push	eax					;push current Y (get_pixel arg)
+	mov		eax, [ebp + 16]
+	push	eax					;push current X (get_pixel arg)
+	call	get_pixel
+	cmp		eax, 0
+	jne		exit_fm				;if pixel is not black (0x000000) jump to end
+
+	pop		eax					;take off X from stack
+	pop		eax					;take off Y from stack
+	pop		eax					;take off Image pos from stack
+
+exit_fm:
 	mov		eax, 1				;return 1
 
+	mov		esp, ebp
+	pop		ebp
+	ret
+
+
+get_pixel:
+; arguments: on stack ([ebp+8] -> x, [ebp+12] -> y, [ebp+16] -> image_pos)
+; return: Pixel colour in EAX 0x00BBGGRR
+	push	ebp
+	mov 	ebp, esp
+	push	ebx
+
+	mov		ebx, [ebp + 16]		;pixel adress in image to EBX
+	movzx	eax, BYTE [ebx]			;load B
+	movzx	ecx, BYTE [ebx + 1]		;load G
+	shl		ecx, 8
+	or		eax, ecx			;accumulate
+	movzx	ecx, BYTE [ebx + 2]		;load R
+	shl		ecx, 16
+	or		eax, ecx			;accumulate
+
+	pop		ebx
 	mov		esp, ebp
 	pop		ebp
 	ret
