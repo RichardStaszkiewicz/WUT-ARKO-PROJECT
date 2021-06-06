@@ -13,7 +13,7 @@ int main(int argc, const char *argv[])
     //     printf("Please provide only a path to the file\n");
     //     return 0;
     // }
-    argv[1] = "./test_bmp/big_test.bmp";
+    argv[1] = "./test_bmp/very_small.bmp";
 
     FILE *fp;
     fp = fopen(argv[1], "rb");

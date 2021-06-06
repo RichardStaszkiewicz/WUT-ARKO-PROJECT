@@ -222,7 +222,7 @@ find_marker:
 	pop		eax					;take off Image pos from stack
 
 	;markers potential length
-	jmp		get_len
+	call	get_len
 	and		edx, ecx			;bitwise AND via print flag
 	mov		[ebp - 20], eax		;move result to proper place on stack
 
@@ -281,6 +281,7 @@ get_len:
 
 	push	ebp
 	mov		ebp, esp
+
 	mov		eax, [ebp + 28]
 	push	eax 				;push posx
 	mov		eax, [ebp + 20]
@@ -318,7 +319,7 @@ check_l:
 	push	ebx				;push ypos on stack (get_pixel)
 	mov		ebx, [ebp - 4]
 	push 	ebx				;push xpos on stack (get_pixel)
-	call	get_pixel
+	call	get_pixel 		;if is equal 0
 	cmp		eax, 0
 	pop		eax				;pop xpos
 	pop		eax				;pop ypos
