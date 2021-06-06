@@ -14,6 +14,7 @@ global  func
 func:
 	push	ebp
 	mov	ebp, esp
+	;inc [ebp + 8]
 	mov	eax, DWORD [ebp+8]	;address of *a to eax
 	mov	BYTE [eax], 'w'		;a[0]='w'
 	mov	eax, 0			;return 0
