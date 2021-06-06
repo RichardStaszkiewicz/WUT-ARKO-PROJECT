@@ -1,0 +1,49 @@
+     1                                  ;=====================================================================
+     2                                  ; ECOAR - example Intel x86 assembly program
+     3                                  ;
+     4                                  ; Author:      Zbigniew Szymanski
+     5                                  ; Date:        2016-03-16
+     6                                  ; Description: Function converts first character to an 'w'.
+     7                                  ;              int func(char *a);
+     8                                  ;
+     9                                  ;=====================================================================
+    10                                  
+    11                                  section	.text
+    12                                  global  func
+    13                                  
+    14                                  func:
+    15 00000000 55                      	push	ebp
+    16 00000001 89E5                    	mov	ebp, esp
+    17 00000003 8B4508                  	mov	eax, DWORD [ebp+8]	;address of *a to eax
+    18 00000006 C60077                  	mov	BYTE [eax], 'w'		;a[0]='w'
+    19 00000009 B800000000              	mov	eax, 0			;return 0
+    20 0000000E 5D                      	pop	ebp
+    21 0000000F C3                      	ret
+    22                                  
+    23                                  
+    24                                  ;============================================
+    25                                  ; THE STACK
+    26                                  ;============================================
+    27                                  ;
+    28                                  ; larger addresses
+    29                                  ;
+    30                                  ;  |                               |
+    31                                  ;  | ...                           |
+    32                                  ;  ---------------------------------
+    33                                  ;  | function parameter - char *a  | EBP+8
+    34                                  ;  ---------------------------------
+    35                                  ;  | return address                | EBP+4
+    36                                  ;  ---------------------------------
+    37                                  ;  | saved ebp                     | EBP, ESP
+    38                                  ;  ---------------------------------
+    39                                  ;  | ... here local variables      | EBP-x
+    40                                  ;  |     when needed               |
+    41                                  ;
+    42                                  ; \/                              \/
+    43                                  ; \/ the stack grows in this      \/
+    44                                  ; \/ direction                    \/
+    45                                  ;
+    46                                  ; lower addresses
+    47                                  ;
+    48                                  ;
+    49                                  ;============================================
