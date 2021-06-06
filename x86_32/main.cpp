@@ -13,7 +13,7 @@ int main(int argc, const char *argv[])
     //     printf("Please provide only a path to the file\n");
     //     return 0;
     // }
-    argv[1] = "./test_bmp/test_input.bmp";
+    argv[1] = "./test_bmp/big_test.bmp";
 
     FILE *fp;
     fp = fopen(argv[1], "rb");
@@ -35,8 +35,8 @@ int main(int argc, const char *argv[])
     size *= 3;
     unsigned char data[size];
     fread(data, sizeof(unsigned char), size, fp);
-    unsigned int x_coord[100]; // amount of markers cannot be greater than 100
-    unsigned int y_coord[100]; // amount of markers cannot be greater than 100
+    unsigned int x_coord[1000000]; // amount of markers cannot be greater than 100
+    unsigned int y_coord[1000000]; // amount of markers cannot be greater than 100
     // for(int i = 0; i < 30; i+=3) printf("%d %d %d\n", data[i], data[i+1], data[i+2]);
 
     fclose(fp);
