@@ -404,18 +404,87 @@ test6:
 	mov		eax, [ebp - 8]		;current x
 	mov		ecx, [ebp - 20]		;marker len
 	add 	eax, ecx
-	mov		[ebp - 8], eax		;increment x by len
+	inc		eax					;make it point toward one more right
+	mov		[ebp - 8], eax		;increment x by len + 1
 
 	mov		eax, [ebp - 12]		;current pos in USED
 	mov		ecx, [ebp - 20]		;marker len
 	add		eax, ecx
-	mov		[ebp - 12], eax		;increment pos in USED by len
+	inc		eax
+	mov		[ebp - 12], eax		;increment pos in USED by len + 1
 
 	mov		eax, [ebp - 16]		;current pos in IMG
 	mov		ecx, [ebp - 20]		;marker len
 	mul		ecx, 3				;each pixel has 3 bytes
 	add		eax, ecx
-	mov		[ebp - 16], eax		;increment pos in IMG
+	add		eax, 3
+	mov		[ebp - 16], eax		;increment pos in IMG by 3*(len + 1)
+
+	mov		eax, [ebp + 28]		;width
+	cmp		[ebp - 8], eax
+	je		test7				;if the marker is on the right edge, skip the test
+
+	mov		eax, [ebp - 28]		;potential height to EAX argument
+	call	edge_v
+	and		edx, ecx			;bitwise AND between PRINT & CORRECTNESS flags
+
+
+test7:
+	;TEST 7: internal edge (currently we are at the pixel behind corner one)
+	mov		eax, [ebp - 8]		;currnet X
+	mov		ecx, [ebp - 24]		;markers width
+	sub		eax, ecx
+	sub		eax, 2
+	mov		[ebp - 8], eax		;transposed X
+
+	mov		eax, [ebp - 12]		;current USED (ECX is still markers width)
+	sub		eax, ecx
+	sub		eax, 2
+	mov		[ebp - 12], eax		;transposed USED (X)
+
+	mov		eax, [ebp - 16]		;current IMG (ECX is still markers width)
+	mul		ecx, 3
+	sub		eax, ecx
+	sub		eax, 6
+	mov		[ebp - 16], eax		;transposed IMG (X)
+
+
+	mov		ecx, [ebp - 24]		;markers width
+	mov		eax, [ebp - 4]		;current Y
+	add		eax, ecx
+	inc 	eax
+	mov		[ebp - 4], eax		;transposed Y
+
+	mov		eax, [ebp + 28]		;width of bitmap
+	mul		eax, ecx			;store to EAX amount to move by (ECX is markers width)
+	mov		ecx, [ebp - 12]		;current USED
+	add		ecx, eax			;add counted delta
+	mov		[ebp - 12], ecx		;transposed USED; TBD -width
+
+	mov		ecx, [ebp - 16]		;current IMG
+	mul		eax, 3				;delta*3
+	add		ecx, eax
+	mov		[ebp - 16], ecx		;transposed IMG; TBD -3width
+
+	mov		eax, [ebp + 28]		;width of bitmap
+	mov		ecx, [ebp - 12]		;current USED
+	add		ecx, eax
+	mov		[ebp - 12], ecx		;finally transposed USED (Y)
+
+	mov		ecx, [ebp - 16]		;current IMG
+	mul		eax, 3				;3*width
+	add		ecx, eax
+	mov		[ebp - 16], ecx		;finally transposed IMG (Y)
+
+	mov		eax, [ebp - 28]		;markers height
+	mov		ecx, [ebp - 24]		;markers width
+	sub		eax, ecx
+	sub		eax, 1				;amount of pixels to check
+	cmp		eax, 0
+	jbe		exit_fm				;if amount of pixels to check is negativw, continue
+
+	jmp		edge_v
+	and		edx, ecx			;bitwise AND between PRINT & CORRECTNESS flags
 
 
 exit_fm:
@@ -428,6 +497,7 @@ exit_fm:
 ;==========================================================================
 ;============================EXTRA  FUNCTIONS =============================
 ;=========================================================================
+
 
 get_pixel:
 ; description: return chosen pixels RGB
