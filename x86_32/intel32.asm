@@ -226,6 +226,197 @@ find_marker:
 	and		edx, ecx			;bitwise AND via print flag
 	mov		[ebp - 20], eax		;move result to proper place on stack
 
+	;markers potential width
+	call	get_hgh
+	and		edx, ecx			;bitwise and via print flag
+	mov		[ebp - 24], eax		;move result to proper place on stack
+
+	;markers potential height
+	mov		eax, [ebp - 8]		;current Xpos
+	mov		ecx, [ebp - 20]		;markers len
+	add		eax, ecx
+	mov		[ebp - 8], eax		;actualise Xpos to corner of the marker
+
+	mov		ecx, [ebp - 20]
+	mul		ecx, 3				;get amount of byte shift
+	mov		eax, [ebp - 16]
+	add		eax, ecx
+	mov		[ebp - 16], eax		;actualise IMGpos to corner of the marker
+
+	mov		ecx, [ebp - 20]
+	mov		eax, [ebp - 12]
+	add		eax, ecx
+	mov		[ebp - 12], EAX		;actualise USEDpos to corner of the marker
+
+	call	get_hgh
+	and		edx, ecx
+	mov		[ebp - 28], eax
+
+
+	;TEST 1: Check equal arm length
+	mov		eax, [ebp - 20]		;marker len
+	mov		ecx, [ebp - 28]		;marker hgh
+	cmp 	eax, ecx
+	mov		eax, DWORD 1		;generally - pass
+	je		t1_pass
+	mov		eax, DWORD 0		;fail
+
+t1_pass:
+	and 	edx, eax			;bitwise AND
+
+	;TEST 2/3 prep
+	mov		eax, [ebp - 24]		;width
+	cmp		eax, 0
+	je		test4				;if has no oother descriptor, continue to TEST4
+
+	;TEST 2 (check equal width), TEST 3 (check standing arm interior) main
+ch_std:
+	mov		eax, [ebp - 8]		;current x
+	dec 	eax
+	mov		[ebp - 8], eax		;decrement x
+
+	mov		eax, [ebp - 12]		;current pos in USED
+	dec		eax
+	mov		[ebp - 12], eax		;decrement pos in USED
+
+	mov		eax, [ebp - 16]		;current pos in IMG
+	sub		eax, 3
+	mov		[ebp - 16], eax		;decrement pos in IMG
+
+	call	get_hgh
+
+	mov		ecx, [ebp - 28]		;anticipated hgh
+	cmp		ecx, eax			;check if the same heights
+	je		estd
+	mov		edx, DWORD 0		;if not equal, set print flag to 0
+estd:
+	mov		eax, [ebp - 8]
+	dec 	eax
+	mov		[ebp - 8], eax		;decrement current X
+
+	mov		eax, [ebp + 16]		;original X
+	mov		ecx, [ebp - 20]		;marker len
+	add		eax, ecx			;marker corners X
+	mov		ecx, [ebp - 8]		;current X
+	sub		eax, ecx			;delta X from ending
+	mov		ecx, [ebp - 24]		;marker width
+	cmp		eax, ecx
+	jne		ch_std				;if the whole width is checked, end the loop
+
+
+	;TEST 4 preparation (already position set to last pixel in width)
+test4:
+	mov		eax, [ebp - 20]		;potential length
+	mov		ecx, [ebp - 24]		;potential width
+	sub		eax, ecx			;already checked amount by TEST3
+	dec		eax					;without descriptor
+	cmp		eax, 0
+	jl		test5
+	je		t4_end
+
+	;TEST 4 - checking lying arm interrior
+ch_lyi:
+	mov		eax, [ebp - 8]		;current x
+	dec 	eax
+	mov		[ebp - 8], eax		;decrement x
+
+	mov		eax, [ebp - 12]		;current pos in USED
+	dec		eax
+	mov		[ebp - 12], eax		;decrement pos in USED
+
+	mov		eax, [ebp - 16]		;current pos in IMG
+	sub		eax, 3
+	mov		[ebp - 16], eax		;decrement pos in IMG
+
+	call	get_hgh				;ret in ECX will not be used
+
+	mov		ecx, [ebp - 24]		;anticipated height (width)
+	cmp		ecx, eax
+	je		elyi				;if equal, go on
+	mov		edx, DWORD 0		;else unset print flag
+elyi:
+	mov		eax, [ebp - 8]		;current X
+	mov		ecx, [ebp + 16]		;orginal X
+	cmp		eax, ecx
+	je		test5				;checked everything, including start pixel
+	jmp		ch_lyi				;check next pixel on the left
+
+
+t4_end:
+	mov		eax, [ebp - 8]		;current x
+	dec 	eax
+	mov		[ebp - 8], eax		;decrement x
+
+	mov		eax, [ebp - 12]		;current pos in USED
+	dec		eax
+	mov		[ebp - 12], eax		;decrement pos in USED
+
+	mov		eax, [ebp - 16]		;current pos in IMG
+	sub		eax, 3
+	mov		[ebp - 16], eax		;decrement pos in IMG
+
+
+test5:
+	;TEST5, TEST6, TEST7 - test vertical edges
+
+	;TEST5: left edge
+	mov		eax, [ebp - 8]		;current x
+	cmp		eax, 0
+	je		test6				;if the marker is touching the left edge, continue to next test
+
+	mov		eax, [ebp - 24]		;marker width
+	cmp		eax, 0
+	je		test6				;if the marker has no width, continue to next test
+
+	;decrementing to (x - 1, y) position
+	mov		eax, [ebp - 8]		;current x
+	dec 	eax
+	mov		[ebp - 8], eax		;decrement x
+
+	mov		eax, [ebp - 12]		;current pos in USED
+	dec		eax
+	mov		[ebp - 12], eax		;decrement pos in USED
+
+	mov		eax, [ebp - 16]		;current pos in IMG
+	sub		eax, 3
+	mov		[ebp - 16], eax		;decrement pos in IMG
+
+	mov		eax, [ebp - 24]		;amount to check is equal to anticipated marker width
+	call	edge_v
+	and		edx, ecx			;bitwise AND via print falg & correctness raport
+
+	;incrementing to (x, y) position
+	mov		eax, [ebp - 8]		;current x
+	inc 	eax
+	mov		[ebp - 8], eax		;decrement x
+
+	mov		eax, [ebp - 12]		;current pos in USED
+	inc		eax
+	mov		[ebp - 12], eax		;decrement pos in USED
+
+	mov		eax, [ebp - 16]		;current pos in IMG
+	add		eax, 3
+	mov		[ebp - 16], eax		;decrement pos in IMG
+
+
+test6:
+	;TEST 6: right edge
+	mov		eax, [ebp - 8]		;current x
+	mov		ecx, [ebp - 20]		;marker len
+	add 	eax, ecx
+	mov		[ebp - 8], eax		;increment x by len
+
+	mov		eax, [ebp - 12]		;current pos in USED
+	mov		ecx, [ebp - 20]		;marker len
+	add		eax, ecx
+	mov		[ebp - 12], eax		;increment pos in USED by len
+
+	mov		eax, [ebp - 16]		;current pos in IMG
+	mov		ecx, [ebp - 20]		;marker len
+	mul		ecx, 3				;each pixel has 3 bytes
+	add		eax, ecx
+	mov		[ebp - 16], eax		;increment pos in IMG
+
 
 exit_fm:
 	mov		eax, edx			;return edx
