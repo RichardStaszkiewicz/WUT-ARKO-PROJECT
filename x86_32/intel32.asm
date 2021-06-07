@@ -238,7 +238,7 @@ find_marker:
 	mov		[ebp - 8], eax		;actualise Xpos to corner of the marker
 
 	mov		ecx, [ebp - 20]
-	mul		ecx, 3				;get amount of byte shift
+	lea		ecx, [ecx + 2*ecx]	;get amount of byte shift
 	mov		eax, [ebp - 16]
 	add		eax, ecx
 	mov		[ebp - 16], eax		;actualise IMGpos to corner of the marker
@@ -415,7 +415,7 @@ test6:
 
 	mov		eax, [ebp - 16]		;current pos in IMG
 	mov		ecx, [ebp - 20]		;marker len
-	mul		ecx, 3				;each pixel has 3 bytes
+	lea		ecx, [ecx + 2*ecx]	;each pixel has 3 bytes
 	add		eax, ecx
 	add		eax, 3
 	mov		[ebp - 16], eax		;increment pos in IMG by 3*(len + 1)
@@ -443,7 +443,7 @@ test7:
 	mov		[ebp - 12], eax		;transposed USED (X)
 
 	mov		eax, [ebp - 16]		;current IMG (ECX is still markers width)
-	mul		ecx, 3
+	lea		ecx, [ecx + 2*ecx]
 	sub		eax, ecx
 	sub		eax, 6
 	mov		[ebp - 16], eax		;transposed IMG (X)
@@ -456,13 +456,13 @@ test7:
 	mov		[ebp - 4], eax		;transposed Y
 
 	mov		eax, [ebp + 28]		;width of bitmap
-	mul		eax, ecx			;store to EAX amount to move by (ECX is markers width)
+	imul	eax, ecx			;store to EAX amount to move by (ECX is markers width)
 	mov		ecx, [ebp - 12]		;current USED
 	add		ecx, eax			;add counted delta
 	mov		[ebp - 12], ecx		;transposed USED; TBD -width
 
 	mov		ecx, [ebp - 16]		;current IMG
-	mul		eax, 3				;delta*3
+	lea		eax, [eax + eax*2]	;delta*3
 	add		ecx, eax
 	mov		[ebp - 16], ecx		;transposed IMG; TBD -3width
 
@@ -472,7 +472,7 @@ test7:
 	mov		[ebp - 12], ecx		;finally transposed USED (Y)
 
 	mov		ecx, [ebp - 16]		;current IMG
-	mul		eax, 3				;3*width
+	lea		eax, [eax + 2*eax]	;3*width
 	add		ecx, eax
 	mov		[ebp - 16], ecx		;finally transposed IMG (Y)
 
@@ -642,7 +642,7 @@ get_hgh:
 
 check_h:
 	mov		ebx, [ebp + 64]		;width
-	mul		ebx, 3				;width x 3 bytes per pixel
+	lea		ebx, [ebx + 2*ebx]	;width x 3 bytes per pixel
 	mov		eax, [ebp - 8]
 	add		eax, ebx
 	mov		[ebp - 8], eax		;increment image_pos
@@ -739,7 +739,7 @@ edge_v:
 
 check_e:
 	mov		ebx, [ebp + 64]		;width
-	mul		ebx, 3				;width*3 bytes per pixel (may be lea)
+	lea		ebx, [ebx + 2*ebx]	;width*3 bytes per pixel (may be lea)
 	mov		eax, [ebp - 8]
 	add		eax, ebx
 	mov		[ebp - 8], eax		;increment image_pos
