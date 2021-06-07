@@ -266,6 +266,7 @@ get_pixel:
 	pop		ebp
 	ret
 
+;=========================================================================================
 
 get_len:
 ; description: return potential length of arm, starting with given coordinates pixel
@@ -343,6 +344,194 @@ end_len:
 	dec		ecx				;if ecx was not 0, move onward with 0
 
 exit_len:
+	pop		edx
+	pop		ebx
+	mov		esp, ebp
+	pop		ebp
+	ret
+
+
+;==================================================================================
+
+get_hgh:
+; description: return potential height of arm, starting with given coordinates pixel
+; arguments: on stack
+; 			[ebp+32] -> [ebp-4] -> y
+;			[ebp+20] -> [ebp-8] -> image_pos
+;			[ebp+24] -> [ebp-12] -> used_pos
+;			[ebp+64] -> width const.
+;			[ebp+60] -> height const.
+;			[ebp+28] -> x
+; return:
+; 		EAX -> counted height
+;		ECX -> 1 executed, 0 error
+
+	push	ebp
+	mov		ebp, esp
+
+	mov		ecx, 0				;Set ERROR FLAG to 0
+	mov		eax, [ebp + 32]
+	push	eax					;push y on stack
+	mov		eax, [ebp + 20]
+	push	eax					;push image_pos on stack
+	mov		eax, [ebp + 24]
+	push 	eax					;push used_pos on stack
+	push	edx
+	push	ebx
+
+check_h:
+	mov		ebx, [ebp + 64]		;width
+	mul		ebx, 3				;width x 3 bytes per pixel
+	mov		eax, [ebp - 8]
+	add		eax, ebx
+	mov		[ebp - 8], eax		;increment image_pos
+
+	mov		ebx, [ebp + 64]		;width
+	mov		eax, [ebp - 12]		;position in used
+	add		eax, ebx
+	mov		[ebp - 12], eax		;increment position in used
+
+	mov		eax, [ebp - 4]
+	inc 	eax
+	mov		[ebp - 4], eax		;increment y
+
+	cmp		eax, [ebp + 60]		;check if pixel on border
+	je		end_hgh				;end if so
+
+
+
+	mov		eax, [ebp - 12]
+	mov		edx, [eax]			;value of pixel in USED
+	add		ecx, edx			;error flag will store accumulated sum of used pixels
+	mov		[ebp - 12], DWORD 1	;set pixel as used
+
+	mov		ebx, [ebp - 8]
+	push 	ebx					;image_pos (get_pixel)
+	mov		ebx, [ebp - 4]
+	push	ebx					;y (get_pixel)
+	mov		ebx, [ebp + 28]
+	push	ebx					;x (get_pixel)
+	call	get_pixel
+	cmp		eax, 0
+	pop		eax
+	pop		eax
+	pop		eax
+	je		check_h
+
+	cmp		edx, 1				;if last pixel was used, it's irrelevant
+	jne		end_hgh
+	dec 	ecx
+
+end_hgh:
+	mov		eax, [ebp - 4]		;y current
+	mov		ebx, [ebp + 32]		;y original
+	sub		eax, ebx			;y current - y orginal = delta y
+	dec		eax					;correction (counted base pixel)
+
+	cmp		ecx, 0
+	mov		ecx, 0
+	jne		exit_hgh			;if errors not 0, continue with 0
+	inc		ecx					;if 0 errors, increment to 1
+
+exit_hgh:
+	pop		ebx
+	pop		edx
+	mov		esp, ebp
+	pop		ebp
+	ret
+
+
+;===============================================================================
+
+edge_v:
+; description: check if vertical edge is non-black *like get_hgh, but expects no black and has stop condition*
+; arguments: on stack
+; 			[ebp+32] -> [ebp-4] -> y
+;			[ebp+20] -> [ebp-8] -> image_pos
+;			[ebp+24] -> [ebp-12] -> used_pos
+;			[ebp+64] -> width const.
+;			[ebp+60] -> height const.
+;			[ebp+28] -> x
+;			in registers:
+;			EAX -> [ebp-16] -> Amount to check
+; return:
+; 		EAX -> counted height
+;		ECX -> 1 executed, 0 error
+
+
+	push	ebp
+	mov		ebp, esp
+
+
+	mov		ecx, eax			;set error flag to amount to check
+	mov		eax, [ebp + 32]
+	push	eax					;push y on stack
+	mov		eax, [ebp + 20]
+	push	eax					;push image_pos on stack
+	mov		eax, [ebp + 24]
+	push 	eax					;push used_pos on stack
+	push	ecx					;push amount on stack
+	mov		ecx, 0				;set Error flag to 0
+
+	push	ebx
+	push	edx
+
+check_e:
+	mov		ebx, [ebp + 64]		;width
+	mul		ebx, 3				;width*3 bytes per pixel (may be lea)
+	mov		eax, [ebp - 8]
+	add		eax, ebx
+	mov		[ebp - 8], eax		;increment image_pos
+
+	mov		ebx, [ebp + 64]		;width
+	mov		eax, [ebp - 12]		;position in used
+	add		eax, ebx
+	mov		[ebp - 12], eax		;increment position in used
+
+	mov		eax, [ebp - 4]
+	inc 	eax
+	mov		[ebp - 4], eax		;increment y
+
+	cmp		eax, [ebp + 60]		;check if pixel on border
+	je		end_exit			;end if so
+
+	mov		[ebp - 12], DWORD 1	;set pixel as used
+
+	mov		ebx, [ebp - 8]
+	push 	ebx					;image_pos (get_pixel)
+	mov		ebx, [ebp - 4]
+	push	ebx					;y (get_pixel)
+	mov		ebx, [ebp + 28]
+	push	ebx					;x (get_pixel)
+	call	get_pixel
+	mov		ebx, [ebp - 16]
+	dec		ebx
+	mov		[ebp - 16], ebx		;amount to check left
+
+	cmp		eax, 0
+	pop		eax
+	pop		eax
+	pop		eax
+	je		ec
+	mov		ecx, 1
+
+ec:
+	cmp		ebx, 0				;amount to check left in EBX from above
+	jne		check_e
+
+
+end_exit:
+	mov		eax, [ebp - 4]		;y current
+	mov		ebx, [ebp + 32]		;y original
+	sub		eax, ebx			;y current - y orginal = delta y
+	dec		eax					;correction (counted base pixel)
+
+	cmp		ecx, 0
+	mov		ecx, 0
+	jne		exit_hgh			;if errors not 0, continue with 0
+	inc		ecx					;if 0 errors, increment to 1
+
+exit_edge:
 	pop		edx
 	pop		ebx
 	mov		esp, ebp
