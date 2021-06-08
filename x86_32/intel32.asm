@@ -137,6 +137,7 @@ main_lx:
 	cmp		eax, [ebp + 24]		;compare curr_x with width
 	je		main_ly				;if curr_x is equal width, jump to ly
 
+	call	get_pixel
 	call	find_marker			;call the function checking for marker
 	cmp		eax, 0
 	je		main_con			;if the EAX is equal 0, don't save the coordinates

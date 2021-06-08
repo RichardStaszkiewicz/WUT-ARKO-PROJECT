@@ -18,7 +18,8 @@ int main(int argc, const char *argv[])
     FILE *fp;
     fp = fopen(argv[1], "rb");
 
-    if(fp == NULL){
+    if(fp == NULL)
+    {
         printf("Error: File not opened!\n");
         return 0;
     }
@@ -30,11 +31,13 @@ int main(int argc, const char *argv[])
     int height = *(int*)&info[22];
 
     int size = width * height;
-    unsigned char used[size];
+    unsigned char* used = new unsigned char[size];
     for(int i = 0; i < size/3; i++) used[i] = 0;
     size *= 3;
-    unsigned char data[size];
+    unsigned char* data = new unsigned char[size];
+
     fread(data, sizeof(unsigned char), size, fp);
+
     unsigned int x_coord[1000000]; // amount of markers cannot be greater than 100
     unsigned int y_coord[1000000]; // amount of markers cannot be greater than 100
     // for(int i = 0; i < 30; i+=3) printf("%d %d %d\n", data[i], data[i+1], data[i+2]);
@@ -42,14 +45,19 @@ int main(int argc, const char *argv[])
     fclose(fp);
 
     printf("%p\n", (void*) data);
-    printf("%d %d %d\n", *(data), *(data + 1), *(data + 2));
 
-    int amount = find_markers(data, used, x_coord, y_coord, width, height);
+    for(int i = 0; i < 6 * width; i+=3)
+        printf("(%d, %d): %d %d %d\n", (i/3) % width, i / (3 * width), *(data + i), *(data + i + 1), *(data + i + 2));
+
+    //int amount = find_markers(data, used, x_coord, y_coord, width, height);
 
 
     printf("%p\n", (void*) x_coord);
 
-    for(int i = 0; i < amount; i++) printf("(%d, %d)\n", x_coord[i], y_coord[i]);
+    //for(int i = 0; i < amount; i++) printf("(%d, %d)\n", x_coord[i], y_coord[i]);
+
+    delete used;
+    delete data;
 
     return 0;
 }
