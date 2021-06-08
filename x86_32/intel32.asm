@@ -231,15 +231,16 @@ find_marker:
 	and		edx, ecx			;bitwise and via print flag
 	mov		[ebp - 24], eax		;move result to proper place on stack
 
+before_shifts:
 	;markers potential height
 	mov		eax, [ebp - 8]		;current Xpos
 	mov		ecx, [ebp - 20]		;markers len
 	add		eax, ecx
 	mov		[ebp - 8], eax		;actualise Xpos to corner of the marker
 
-	mov		ecx, [ebp - 20]
+	mov		ecx, [ebp - 20]		;markers length
 	lea		ecx, [ecx + 2*ecx]	;get amount of byte shift
-	mov		eax, [ebp - 16]
+	mov		eax, [ebp - 16]		;currnet image pos
 	add		eax, ecx
 	mov		[ebp - 16], eax		;actualise IMGpos to corner of the marker
 
@@ -512,14 +513,14 @@ get_pixel:
 	push	ebx
 	push	ecx
 
-	mov		ebx, [ebp + 16]		;pixel adress in image to EBX
+	mov		ebx, [ebp + 16]			;pixel adress in image to EBX
 	movzx	eax, BYTE [ebx]			;load B
 	movzx	ecx, BYTE [ebx + 1]		;load G
 	shl		ecx, 8
-	or		eax, ecx			;accumulate
+	or		eax, ecx				;accumulate
 	movzx	ecx, BYTE [ebx + 2]		;load R
 	shl		ecx, 16
-	or		eax, ecx			;accumulate
+	or		eax, ecx				;accumulate
 
 	pop		ecx
 	pop		ebx
@@ -572,7 +573,7 @@ check_l:
 	mov 	ebx, [ebp - 12]
 	mov		edx, [ebx]		;used value
 	add		ecx, edx		;in ERROR FLAG will be stored the sum of used pixels
-	mov		[ebp - 12], DWORD 1	;set pixel as used
+	mov		[ebx], DWORD 1	;set pixel as used
 
 	push	eax
 	mov		ebx, [ebp - 8]
@@ -664,7 +665,7 @@ check_h:
 	mov		eax, [ebp - 12]
 	mov		edx, [eax]			;value of pixel in USED
 	add		ecx, edx			;error flag will store accumulated sum of used pixels
-	mov		[ebp - 12], DWORD 1	;set pixel as used
+	mov		[eax], DWORD 1		;set pixel as used
 
 	mov		ebx, [ebp - 8]
 	push 	ebx					;image_pos (get_pixel)
@@ -756,7 +757,8 @@ check_e:
 	cmp		eax, [ebp + 60]		;check if pixel on border
 	je		end_exit			;end if so
 
-	mov		[ebp - 12], DWORD 1	;set pixel as used
+	mov		eax, [ebp - 12]		;position in used
+	mov		[eax], DWORD 1		;set pixel as used
 
 	mov		ebx, [ebp - 8]
 	push 	ebx					;image_pos (get_pixel)
